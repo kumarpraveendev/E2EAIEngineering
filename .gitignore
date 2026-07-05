@@ -1,0 +1,20 @@
+# Environment / secrets
+.env
+.env.*
+!env-example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# uv
+.uv/
+
+# OS
+.DS_Store
+
+# Streamlit
+.streamlit/

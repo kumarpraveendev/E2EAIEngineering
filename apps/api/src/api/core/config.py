@@ -1,0 +1,30 @@
+from pathlib import Path
+
+from pydantic import AliasChoices, Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+ENV_FILE = Path(__file__).resolve().parents[5] / ".env"
+
+
+class Settings(BaseSettings):
+    OPENAI_API_KEY: str = Field(
+        default="",
+        validation_alias=AliasChoices("OPENAI_API_KEY", "openai_api_key"),
+    )
+    GOOGLE_API_KEY: str = Field(
+        default="",
+        validation_alias=AliasChoices("GOOGLE_API_KEY", "google_api_key"),
+    )
+    GROQ_API_KEY: str = Field(
+        default="",
+        validation_alias=AliasChoices("GROQ_API_KEY", "groq_api_key"),
+    )
+
+    model_config = SettingsConfigDict(
+        env_file=ENV_FILE,
+        extra="ignore",
+        case_sensitive=False,
+    )
+
+
+config = Settings()
