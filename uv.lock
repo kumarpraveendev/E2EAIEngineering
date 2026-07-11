@@ -705,6 +705,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "instructor" },
     { name = "langchain-community" },
     { name = "matplotlib" },
     { name = "qdrant-client" },
@@ -726,6 +727,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "instructor", specifier = ">=1.15.4" },
     { name = "langchain-community", specifier = ">=0.4.0,<0.4.2" },
     { name = "matplotlib", specifier = ">=3.11.0" },
     { name = "qdrant-client", specifier = ">=1.18.0" },
