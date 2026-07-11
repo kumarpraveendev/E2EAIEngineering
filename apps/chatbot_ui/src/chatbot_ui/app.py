@@ -53,19 +53,7 @@ def api_call(method,url,**kwargs):
 
 
 # Streamlit App
-with st.sidebar:
-    st.title("setting")
 
-    provider = st.selectbox("Select Provider", ["openai", "google", "groq"])
-    if provider == "google":
-        model_name = st.selectbox("Select Model", ["gemini-2.5-flash"])
-    elif provider == "openai":
-        model_name = st.selectbox("Select Model", ["gpt-5-nano", "gpt-5-mini"])
-    elif provider == "groq":
-        model_name = st.selectbox("Select Model", ["llama-3.3-70b-versatile"])
-
-    st.session_state.provider = provider
-    st.session_state.model_name = model_name
 
 
 if "messages" not in st.session_state:
@@ -83,9 +71,9 @@ if prompt := st.chat_input("Hello! How can I assist you today?"):
 
 
     with st.chat_message("assistant"):
-        output=api_call("post",f"{setting.config.API_URL.rstrip('/')}/chat",json={"provider":st.session_state.provider,"model_name":st.session_state.model_name,"messages":st.session_state.messages})
+        output=api_call("post",f"{setting.config.API_URL.rstrip('/')}/agent",json={"query":prompt})
         response_data=output[1]
-        answer=response_data["message"]
+        answer=response_data["answer"]
         st.write(answer)
     st.session_state.messages.append({"role":"assistant","content":answer})
 
