@@ -13,5 +13,6 @@ class RAGUsedContext(BaseModel):
 
 class RAGResponse(BaseModel):
     answer: str
+    used_context: list[RAGUsedContext]
   
     
