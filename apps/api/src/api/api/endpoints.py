@@ -1,7 +1,7 @@
 from fastapi import APIRouter,Request
 import logging
 from api.api.models import RAGRequest,RAGResponse,RAGUsedContext
-from api.agents.retrieval_generation import rag_pipeline
+from api.agents.retrieval_generation import rag_pipeline_wrapper
 
 
 logging.basicConfig(
@@ -10,16 +10,18 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-rag_router=APIRouter()
+rag_router = APIRouter()
 
 @rag_router.post("/")
 def chat(
     request:Request,
     payload:RAGRequest
 )->RAGResponse:
-    result=rag_pipeline(payload.query)
+    result=rag_pipeline_wrapper(payload.query)
+    
     return RAGResponse(
-        answer=result["answer"]
+        answer=result["answer"],
+        used_context=[RAGUsedContext(**item) for item in result["used_context"]]
     )
 
 
