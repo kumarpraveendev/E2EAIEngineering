@@ -3,77 +3,97 @@ from api.agents.retrieval_generation import rag_pipeline
 from qdrant_client import QdrantClient
 from langsmith import Client
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from openai import AsyncOpenAI
+from ragas.llms import LangchainLLMWrapper,llm_factory
+from ragas.embeddings import OpenAIEmbeddings
 
-from ragas.llms import LangchainLLMWrapper
-from ragas.embeddings import LangchainEmbeddingsWrapper
-
-from ragas.dataset_schema import SingleTurnSample
-from ragas.metrics import IDBasedContextPrecision, IDBasedContextRecall, Faithfulness, ResponseRelevancy
+from ragas.metrics.collections import Faithfulness,AnswerRelevancy
 
 ls_client=Client()
 qdrant_client = QdrantClient(url="http://localhost:6333")
+openai_client=AsyncOpenAI()
 
-ragas_llm = LangchainLLMWrapper(ChatOpenAI(model="gpt-5.4-nano"))
-ragas_embeddings = LangchainEmbeddingsWrapper(OpenAIEmbeddings(model="text-embedding-3-small"))
+ragas_llm = llm_factory("gpt-4.1-mini",client=openai_client,max_tokens=4000)
 
-def ragas_context_precision_id_based(run, example):
+ragas_embeddings = OpenAIEmbeddings(client= openai_client,model="text-embedding-3-small")
 
-    sample = SingleTurnSample(
-        retrieved_context_ids=run.outputs["retrieved_context_ids"],
-        reference_context_ids=example.outputs["reference_context_ids"]
-    )
+def context_precision_id_based(run, example):
+    retrieved_context_ids={str(id) for id in run.outputs["retrieved_context_ids"]}
+    reference_context_ids={str(id) for id in run.outputs["reference_context_ids"]}
 
-    scorer = IDBasedContextPrecision()
+    score = len(retrieved_context_ids & reference_context_ids) / len(retrieved_context_ids) if retrieved_context_ids else 0.0
 
-    return scorer.single_turn_score(sample)
+    return score
 
 
-def ragas_context_recall_id_based(run, example):
+def context_recall_id_based(run, example):
 
-    sample = SingleTurnSample(
-        retrieved_context_ids=run.outputs["retrieved_context_ids"],
-        reference_context_ids=example.outputs["reference_context_ids"]
-    )
+    retrieved_context_ids={str(id) for id in run.outputs["retrieved_context_ids"]}
+    reference_context_ids={str(id) for id in run.outputs["reference_context_ids"]}
 
-    scorer = IDBasedContextRecall()
+    score = len(retrieved_context_ids & reference_context_ids) / len(reference_context_ids) if reference_context_ids
 
-    return scorer.single_turn_score(sample)
+    return score
 
 
 def ragas_faithfulness(run, example):
 
-    sample = SingleTurnSample(
+    scorer = Faithfulness(llm=ragas_llm)
+    result =scorer.score(
             user_input=run.outputs["question"],
             response=run.outputs["answer"],
             retrieved_contexts=run.outputs["retrieved_context"]
         )
-
-    scorer = Faithfulness(llm=ragas_llm)
-    
-    return scorer.single_turn_score(sample)
+    return result.value
 
 
 def ragas_relevancy(run, example):
+     
+    scorer = AnswerRelevancy(llm=ragas_llm, embeddings=ragas_embeddings)
 
-    sample = SingleTurnSample(
+    result = scorer.score(
         user_input=run.outputs["question"],
-        response=run.outputs["answer"],
-        retrieved_contexts=run.outputs["retrieved_context"]
+        response=run.outputs["answer"]
     )
 
-    scorer = ResponseRelevancy(llm=ragas_llm, embeddings=ragas_embeddings)
+    return result.value
 
-    return scorer.single_turn_score(sample)
-
-
+print ("Evaluating Plain Retriever")
 results = ls_client.evaluate(
-        lambda x: rag_pipeline(x["question"], qdrant_client),
-        data="rag-evaluation-dataset",
+        lambda x: rag_pipeline(x["question"], qdrant_client,top_k=10,hybrid=False,rerank=False),
+        data="rag-evaluation-dataset-extended",
         evaluators=[
-            ragas_context_precision_id_based,
-            ragas_context_recall_id_based,
+            context_precision_id_based,
+            context_recall_id_based,
             ragas_faithfulness,
             ragas_relevancy,
         ],
-        experiment_prefix="retriever",
+        experiment_prefix="plain"
+    )
+print ("Evaluating Hybrid Retriever")
+
+results = ls_client.evaluate(
+        lambda x: rag_pipeline(x["question"], qdrant_client,top_k=10,hybrid=True,rerank=False),
+        data="rag-evaluation-dataset-extended",
+        evaluators=[
+            context_precision_id_based,
+            context_recall_id_based,
+            ragas_faithfulness,
+            ragas_relevancy,
+        ],
+        experiment_prefix="Hybrid"
+    )
+
+print ("Evaluating Hybrid reRetriever  with Reranking")
+
+results = ls_client.evaluate(
+        lambda x: rag_pipeline(x["question"], qdrant_client,top_k=10,hybrid=True,rerank=True),
+        data="rag-evaluation-dataset-extended",
+        evaluators=[
+            context_precision_id_based,
+            context_recall_id_based,
+            ragas_faithfulness,
+            ragas_relevancy,
+        ],
+        experiment_prefix="Hybrid"
     )
