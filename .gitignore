@@ -210,5 +210,6 @@ __marimo__/
 # Local data
 qdrant_data/
 data/
+postgres_data.week4-old-backup/
 # macOS
 .DS_Store
