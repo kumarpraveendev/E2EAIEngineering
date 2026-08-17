@@ -2,8 +2,9 @@ from pydantic import BaseModel
 from typing import Optional
 
 
-class RAGRequest(BaseModel):
+class AgentRequest(BaseModel):
     query:str
+    thread_id:str
 
 
 class RAGUsedContext(BaseModel):
@@ -11,7 +12,7 @@ class RAGUsedContext(BaseModel):
     price: Optional[float] = None
     description: str
 
-class RAGResponse(BaseModel):
+class AgentResponse(BaseModel):
     answer: str
     used_context: list[RAGUsedContext]
   

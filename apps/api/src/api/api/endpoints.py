@@ -1,6 +1,6 @@
 from fastapi import APIRouter,Request
 import logging
-from api.api.models import RAGRequest,RAGResponse,RAGUsedContext
+from api.api.models import AgentRequest,AgentResponse,RAGUsedContext
 from api.agents.graph import agent_wrapper
 
 
@@ -15,11 +15,11 @@ rag_router = APIRouter()
 @rag_router.post("/")
 def chat(
     request:Request,
-    payload:RAGRequest
-)->RAGResponse:
-    result=agent_wrapper(payload.query)
+    payload:AgentRequest
+)->AgentResponse:
+    result=agent_wrapper(payload.query, payload.thread_id)
     
-    return RAGResponse(
+    return AgentResponse(
         answer=result["answer"],
         used_context=[RAGUsedContext(**item) for item in result["used_context"]]
     )

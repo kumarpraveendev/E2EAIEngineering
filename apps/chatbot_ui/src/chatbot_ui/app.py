@@ -1,7 +1,7 @@
 import streamlit as st
 import chatbot_ui.core.config as setting
 import requests
-
+import uuid
 
 import logging
 
@@ -17,7 +17,12 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+def get_session_id():
+    if "session_id" not in st.session_state:
+        st.session_state.session_id=str(uuid.uuid4)
+    return st.session_state.session_id
 
+thread_id=get_session_id()
 
 def api_call(method,url,**kwargs):
 
@@ -60,6 +65,9 @@ def api_call(method,url,**kwargs):
 if "messages" not in st.session_state:
     st.session_state.messages = [{"role":"assistant", "content":"Hello, how are you?"}]
 
+if "thread_id" not in st.session_state:
+    st.session_state.thread_id=thread_id
+
 if "used_context" not in st.session_state:
     st.session_state.used_context = []
 
@@ -90,7 +98,7 @@ if prompt := st.chat_input("Hello! How can I assist you today?"):
 
 
     with st.chat_message("assistant"):
-        state,output=api_call("post",f"{setting.config.API_URL.rstrip('/')}/agent",json={"query":prompt})
+        state,output=api_call("post",f"{setting.config.API_URL.rstrip('/')}/agent",json={"query":prompt,"thread_id":st.session_state.thread_id})
         if state and "answer" in output:
             answer=output["answer"]
             used_context=output.get("used_context",[])
